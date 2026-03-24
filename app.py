@@ -116,9 +116,11 @@ with st.sidebar:
 
 # ─── Main UI ──────────────────────────────────────────────────────────────────
 st.markdown('<p class="main-title"> Disease Prediction System</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Developed by' \
-' Jaswanth Babu Reddi'
-'Tanmay Guruvugari</p>', unsafe_allow_html=True)
+st.markdown("""
+            <h3>Developed by</h3>
+            <p>Jaswanth Babu Reddi</p>
+            <p>Tanmay Guruvugari</p>
+            """, unsafe_allow_html=True)
 
 
 
