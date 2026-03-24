@@ -16,7 +16,7 @@ from utils import (
 
 # ─── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Disease Predictor",
+    page_title="MedPredict",
     page_icon="🩺",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -101,7 +101,7 @@ model, all_symptoms, sev_dict, acc, descriptions, precautions, sev_df = load_res
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/stethoscope.png", width=80)
-    st.markdown("##  Disease Predictor")
+    st.markdown("##  MedPredict")
     st.markdown("---")
     st.markdown("### About")
     st.info(
