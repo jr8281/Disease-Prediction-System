@@ -116,7 +116,9 @@ with st.sidebar:
 
 # ─── Main UI ──────────────────────────────────────────────────────────────────
 st.markdown('<p class="main-title"> Disease Prediction System</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Select your symptoms below to get an AI-powered disease prediction</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Developed by</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Jaswanth Babu Reddi</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Tanmay Guruvugari</p>', unsafe_allow_html=True)
 
 st.markdown("---")
 
