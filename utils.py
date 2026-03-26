@@ -138,9 +138,9 @@ def severity_score(selected_symptoms, sev_dict):
 
 def severity_label(score):
     """Convert numeric severity score to a human-readable label."""
-    if score <= 10:
+    if score <= 3:
         return "Mild", "#2ecc71"
-    elif score <= 20:
+    elif score <= 5:
         return "Moderate", "#f39c12"
     else:
         return "Severe", "#e74c3c"
