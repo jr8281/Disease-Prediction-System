@@ -2,25 +2,6 @@
 
 A Streamlit web app that predicts diseases based on symptoms using a **Random Forest** classifier.
 
----
-
-## 📁 Project Structure
-
-```
-disease_predictor/
-├── app.py                        # Main Streamlit UI
-├── utils.py                      # ML model, data loading, helpers
-├── requirements.txt              # Python dependencies
-├── model.pkl                     # Auto-generated on first run
-└── data/
-    ├── dataset.csv               # Training data (symptoms → disease)
-    ├── Symptom-severity.csv      # Symptom severity weights
-    ├── symptom_Description.csv   # Disease descriptions
-    └── symptom_precaution.csv    # Disease precautions
-```
-
----
-
 ## 🚀 Setup & Run
 
 ### 1. Install dependencies
@@ -69,6 +50,3 @@ http://localhost:8501
 
 ---
 
-## ⚠️ Disclaimer
-
-This tool is for **educational purposes only**. Do not use it as a substitute for professional medical advice, diagnosis, or treatment.
