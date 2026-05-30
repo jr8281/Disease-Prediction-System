@@ -8,10 +8,27 @@ import os
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
+REQUIRED_FILES = [
+    "dataset.csv",
+    "symptom_Description.csv",
+    "symptom_precaution.csv",
+    "Symptom-severity.csv",
+]
+
+
+def _check_data_files():
+    """Raise a clear error if any required data file is missing."""
+    missing = [f for f in REQUIRED_FILES if not os.path.exists(os.path.join(DATA_DIR, f))]
+    if missing:
+        raise FileNotFoundError(
+            f"Missing data files in '{DATA_DIR}': {', '.join(missing)}"
+        )
+
 
 def load_symptoms():
     """Load all valid symptoms with their severity weights."""
-    sev = pd.read_csv(os.path.join(DATA_DIR, "Symptom-severity.csv"))
+    path = os.path.join(DATA_DIR, "Symptom-severity.csv")
+    sev = pd.read_csv(path)
     sev = sev[sev["Symptom"] != "prognosis"].drop_duplicates("Symptom")
     sev["Symptom"] = sev["Symptom"].str.strip()
     return sev
@@ -19,13 +36,15 @@ def load_symptoms():
 
 def load_descriptions():
     """Return dict: disease -> description."""
-    df = pd.read_csv(os.path.join(DATA_DIR, "symptom_Description.csv"))
-    return dict(zip(df["Disease"].str.strip(), df["Description"]))
+    path = os.path.join(DATA_DIR, "symptom_Description.csv")
+    df = pd.read_csv(path)
+    return dict(zip(df["Disease"].str.strip(), df["Description"].str.strip()))
 
 
 def load_precautions():
     """Return dict: disease -> list of precautions."""
-    df = pd.read_csv(os.path.join(DATA_DIR, "symptom_precaution.csv"))
+    path = os.path.join(DATA_DIR, "symptom_precaution.csv")
+    df = pd.read_csv(path)
     result = {}
     for _, row in df.iterrows():
         disease = str(row["Disease"]).strip()
@@ -56,6 +75,8 @@ def load_and_preprocess():
     severity-weighted feature matrix.
     Returns: X (ndarray), y (array of disease names), all_symptoms (list), sev_dict (dict)
     """
+    _check_data_files()
+
     sev_df = load_symptoms()
     all_symptoms = sev_df["Symptom"].tolist()
     sev_dict = dict(zip(sev_df["Symptom"], sev_df["weight"]))
@@ -63,12 +84,14 @@ def load_and_preprocess():
     df = pd.read_csv(os.path.join(DATA_DIR, "dataset.csv"))
     df = df.where(pd.notna(df), "")
 
+    symptom_cols = [c for c in df.columns if c.startswith("Symptom_")]
+
     X = []
     for _, row in df.iterrows():
         symptoms_in_row = [
-            str(row[f"Symptom_{i}"]).strip()
-            for i in range(1, 18)
-            if str(row[f"Symptom_{i}"]).strip() != ""
+            str(row[c]).strip()
+            for c in symptom_cols
+            if str(row[c]).strip() != ""
         ]
         vec = build_feature_vector(symptoms_in_row, all_symptoms, sev_dict)
         X.append(vec)
@@ -104,25 +127,41 @@ def train_model():
 def get_or_train_model(model_path="model.pkl"):
     """Load cached model or retrain if not found."""
     model_path = os.path.join(os.path.dirname(__file__), model_path)
+
     if os.path.exists(model_path):
-        with open(model_path, "rb") as f:
-            data = pickle.load(f)
-        return data["model"], data["all_symptoms"], data["sev_dict"], data["accuracy"]
+        try:
+            with open(model_path, "rb") as f:
+                data = pickle.load(f)
+            # Validate expected keys exist
+            if all(k in data for k in ("model", "all_symptoms", "sev_dict", "accuracy")):
+                return data["model"], data["all_symptoms"], data["sev_dict"], data["accuracy"]
+        except Exception:
+            # Corrupted or incompatible pickle — retrain silently
+            os.remove(model_path)
 
     model, all_symptoms, sev_dict, acc = train_model()
+
     with open(model_path, "wb") as f:
         pickle.dump(
-            {"model": model, "all_symptoms": all_symptoms, "sev_dict": sev_dict, "accuracy": acc},
+            {
+                "model": model,
+                "all_symptoms": all_symptoms,
+                "sev_dict": sev_dict,
+                "accuracy": acc,
+            },
             f,
         )
     return model, all_symptoms, sev_dict, acc
 
 
-def predict_disease(selected_symptoms, model, all_symptoms, sev_dict, top_n=3):
+def predict_disease(selected_symptoms: list, model, all_symptoms: list, sev_dict: dict, top_n: int = 3):
     """
     Predict disease from selected symptoms.
-    Returns list of (disease, probability) sorted by probability desc.
+    Returns list of (disease, confidence_percent) sorted by confidence desc.
     """
+    if not selected_symptoms:
+        return []
+
     vec = build_feature_vector(selected_symptoms, all_symptoms, sev_dict)
     vec = vec.reshape(1, -1)
     proba = model.predict_proba(vec)[0]
@@ -131,16 +170,16 @@ def predict_disease(selected_symptoms, model, all_symptoms, sev_dict, top_n=3):
     return [(classes[i], round(float(proba[i]) * 100, 2)) for i in top_indices]
 
 
-def severity_score(selected_symptoms, sev_dict):
+def severity_score(selected_symptoms: list, sev_dict: dict) -> int:
     """Return total severity score for selected symptoms."""
     return sum(sev_dict.get(s, 1) for s in selected_symptoms)
 
 
-def severity_label(score):
-    """Convert numeric severity score to a human-readable label."""
-    if score <= 3:
+def severity_label(score: int):
+    """Convert numeric severity score to a human-readable label and color."""
+    if score <= 10:
         return "Mild", "#2ecc71"
-    elif score <= 5:
+    elif score <= 20:
         return "Moderate", "#f39c12"
     else:
         return "Severe", "#e74c3c"
