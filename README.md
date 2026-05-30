@@ -3,7 +3,7 @@
 > **Disclaimer:** This tool is for educational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.
 
 ## 🔗 Live Demo
-👉 **[Try it on Streamlit Cloud](https://your-app-link.streamlit.app)** ← replace with your link after deploying
+👉 **[Try it on Streamlit Cloud](https://med-predict.streamlit.app/)
 
 ---
 
