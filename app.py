@@ -1,8 +1,5 @@
 import streamlit as st
-import sys
 import os
-
-sys.path.insert(0, os.path.dirname(__file__))
 
 from utils import (
     get_or_train_model,
@@ -26,18 +23,6 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    .main-title {
-        font-size: 2.4rem;
-        font-weight: 700;
-        color: #1a73e8;
-        margin-bottom: 0;
-    }
-    .sub-title {
-        font-size: 1rem;
-        color: #666;
-        margin-top: 0;
-        margin-bottom: 2rem;
-    }
     .result-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 12px;
@@ -45,20 +30,15 @@ st.markdown(
         color: white;
         margin-bottom: 1rem;
     }
-    .result-disease {
-        font-size: 1.8rem;
-        font-weight: 700;
-    }
-    .result-confidence {
-        font-size: 1rem;
-        opacity: 0.85;
-    }
+    .result-disease { font-size: 1.8rem; font-weight: 700; }
+    .result-confidence { font-size: 1rem; opacity: 0.85; }
     .info-card {
         background: #f8f9fa;
         border-left: 4px solid #1a73e8;
         border-radius: 6px;
         padding: 1rem 1.2rem;
         margin-bottom: 1rem;
+        color: #333;
     }
     .precaution-item {
         background: #fff3cd;
@@ -66,13 +46,7 @@ st.markdown(
         padding: 0.5rem 1rem;
         margin: 0.3rem 0;
         border-left: 4px solid #ffc107;
-    }
-    .severity-badge {
-        display: inline-block;
-        padding: 0.3rem 1rem;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 0.9rem;
+        color: #333;
     }
     .metric-card {
         background: white;
@@ -80,6 +54,15 @@ st.markdown(
         border-radius: 10px;
         padding: 1rem;
         text-align: center;
+    }
+    .disclaimer-box {
+        background: #fff8e1;
+        border-left: 4px solid #ff9800;
+        border-radius: 6px;
+        padding: 0.8rem 1rem;
+        font-size: 0.85rem;
+        color: #5d4037;
+        margin-bottom: 1rem;
     }
     </style>
     """,
@@ -96,12 +79,16 @@ def load_resources():
     return model, all_symptoms, sev_dict, acc, descriptions, precautions, sev_df
 
 
-model, all_symptoms, sev_dict, acc, descriptions, precautions, sev_df = load_resources()
+try:
+    model, all_symptoms, sev_dict, acc, descriptions, precautions, sev_df = load_resources()
+except FileNotFoundError as e:
+    st.error(f"❌ Data files missing: {e}")
+    st.stop()
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/stethoscope.png", width=80)
-    st.markdown("##  MedPredict")
+    st.markdown("## MedPredict")
     st.markdown("---")
     st.markdown("### About")
     st.info(
@@ -110,27 +97,43 @@ with st.sidebar:
         "a description and precautions."
     )
     st.markdown("### Model Info")
-    st.success(f" Random Forest Algorithm\n\n Test Accuracy: **{acc*100:.1f}%**\n\n Diseases: **41**\n\n Symptoms: **{len(all_symptoms)}**")
+    st.success(
+        f"🌲 Random Forest Algorithm\n\n"
+        f"Test Accuracy: **{acc * 100:.1f}%**\n\n"
+        f"Diseases: **41**\n\n"
+        f"Symptoms: **{len(all_symptoms)}**"
+    )
     st.markdown("---")
-   
+    st.markdown("### ⚠️ Disclaimer")
+    st.warning(
+        "This tool is for **educational purposes only** and does not constitute "
+        "medical advice. Always consult a qualified healthcare professional for "
+        "diagnosis and treatment."
+    )
 
 # ─── Main UI ──────────────────────────────────────────────────────────────────
-st.markdown('<h3 style="color:blue;"> Disease Prediction System</h3>', unsafe_allow_html=True)
-st.markdown("""
-            <h4>Developed by</h4>
-            <p>Jaswanth Babu Reddi</p>
-            <p>Tanmay Guruvugari</p>
-            """, unsafe_allow_html=True)
+st.markdown('<h3 style="color:#1a73e8;">🩺 Disease Prediction System</h3>', unsafe_allow_html=True)
+st.markdown(
+    """
+    <p style="color:#666;margin-top:-0.5rem;">
+        Developed by <strong>Jaswanth Babu Reddi</strong> &amp; <strong>Tanmay Guruvugari</strong>
+    </p>
+    """,
+    unsafe_allow_html=True,
+)
 
-
+st.markdown(
+    '<div class="disclaimer-box">⚠️ <strong>Educational use only.</strong> '
+    'This is not a substitute for professional medical advice, diagnosis, or treatment.</div>',
+    unsafe_allow_html=True,
+)
 
 st.markdown("---")
 
-# Symptom selection
+# ─── Symptom selection ────────────────────────────────────────────────────────
 st.markdown("### 🔍 Select Your Symptoms")
 st.markdown("Type to search and select all symptoms you are experiencing:")
 
-# Format symptoms for display (replace underscores, title case)
 symptom_display = {s: s.replace("_", " ").title() for s in all_symptoms}
 display_to_raw = {v: k for k, v in symptom_display.items()}
 display_options = sorted(symptom_display.values())
@@ -145,7 +148,7 @@ selected_display = st.multiselect(
 selected_symptoms = [display_to_raw[d] for d in selected_display]
 
 # ─── Predict button ────────────────────────────────────────────────────────────
-col_btn, col_clear = st.columns([2, 8])
+col_btn, _ = st.columns([2, 8])
 with col_btn:
     predict_btn = st.button("🔮 Predict Disease", type="primary", use_container_width=True)
 
@@ -156,10 +159,11 @@ if predict_btn:
     if len(selected_symptoms) < 2:
         st.warning("⚠️ Please select at least **2 symptoms** for a meaningful prediction.")
     else:
-        predictions = predict_disease(selected_symptoms, model, all_symptoms, sev_dict, top_n=3)
-        score = severity_score(selected_symptoms, sev_dict)
-        sev_text, sev_color = severity_label(score)
-        top_disease, top_conf = predictions[0]
+        with st.spinner("Analysing symptoms..."):
+            predictions = predict_disease(selected_symptoms, model, all_symptoms, sev_dict, top_n=3)
+            score = severity_score(selected_symptoms, sev_dict)
+            sev_text, sev_color = severity_label(score)
+            top_disease, top_conf = predictions[0]
 
         # ── Top metrics row ───────────────────────────────────────────────────
         m1, m2, m3 = st.columns(3)
@@ -168,7 +172,7 @@ if predict_btn:
         with m2:
             st.metric("📊 Confidence", f"{top_conf}%")
         with m3:
-            st.metric("⚡ Symptom Severity Score", f"{score}")
+            st.metric("⚡ Severity Score", f"{score}")
 
         st.markdown("---")
 
@@ -179,16 +183,20 @@ if predict_btn:
                 f"""
                 <div class="result-card">
                     <div class="result-disease">🦠 {top_disease}</div>
-                    <div class="result-confidence">Confidence: {top_conf}% &nbsp;|&nbsp; Based on {len(selected_symptoms)} symptom(s)</div>
+                    <div class="result-confidence">
+                        Confidence: {top_conf}% &nbsp;|&nbsp; Based on {len(selected_symptoms)} symptom(s)
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
         with sev_col:
+            sev_emoji = "🟢" if sev_text == "Mild" else "🟡" if sev_text == "Moderate" else "🔴"
             st.markdown(
                 f"""
-                <div style="background:{sev_color};border-radius:12px;padding:1rem 1.2rem;color:white;text-align:center;height:100%">
-                    <div style="font-size:2rem">{'🟢' if sev_text=='Mild' else '🟡' if sev_text=='Moderate' else '🔴'}</div>
+                <div style="background:{sev_color};border-radius:12px;padding:1rem 1.2rem;
+                            color:white;text-align:center;">
+                    <div style="font-size:2rem">{sev_emoji}</div>
                     <div style="font-size:1.3rem;font-weight:700">{sev_text}</div>
                     <div style="font-size:0.85rem;opacity:0.9">Severity Level</div>
                 </div>
@@ -204,10 +212,7 @@ if predict_btn:
         with left_col:
             st.markdown("#### 📋 Disease Description")
             desc = descriptions.get(top_disease, "Description not available.")
-            st.markdown(
-                f'<div class="info-card">{desc}</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown(f'<div class="info-card">{desc}</div>', unsafe_allow_html=True)
 
         with right_col:
             st.markdown("#### 🛡️ Recommended Precautions")
@@ -244,7 +249,10 @@ if predict_btn:
 
         # ── Symptom severity breakdown ─────────────────────────────────────────
         with st.expander("📊 Symptom Severity Breakdown"):
-            sev_data = [(s.replace("_", " ").title(), sev_dict.get(s, 1)) for s in selected_symptoms]
+            sev_data = [
+                (s.replace("_", " ").title(), sev_dict.get(s, 1))
+                for s in selected_symptoms
+            ]
             sev_data_sorted = sorted(sev_data, key=lambda x: x[1], reverse=True)
             sev_col1, sev_col2 = st.columns(2)
             for i, (sym, weight) in enumerate(sev_data_sorted):
@@ -252,16 +260,18 @@ if predict_btn:
                 bar = "█" * weight + "░" * (7 - weight)
                 col.markdown(f"**{sym}** &nbsp; `{bar}` &nbsp; weight: **{weight}**")
 
-elif not predict_btn:
-    # ── Placeholder / instruction state ────────────────────────────────────────
+else:
     st.markdown(
         """
         <div style="text-align:center;padding:3rem;color:#aaa;">
             <div style="font-size:4rem">🔬</div>
-            <div style="font-size:1.2rem;margin-top:1rem">Select your symptoms above and click <b>Predict Disease</b></div>
-            <div style="font-size:0.9rem;margin-top:0.5rem">The model will predict the most likely disease with confidence scores</div>
+            <div style="font-size:1.2rem;margin-top:1rem">
+                Select your symptoms above and click <b>Predict Disease</b>
+            </div>
+            <div style="font-size:0.9rem;margin-top:0.5rem">
+                The model will predict the most likely disease with confidence scores
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
